@@ -9,11 +9,11 @@ const GameContainer: React.FC = () => {
 
   // Render different screens based on game state
   return (
-    <div className="w-full">
+    <>
       {gameState === 'initial' && <WelcomeScreen />}
       {gameState === 'playing' && <Challenge />}
       {gameState === 'completed' && <CompletionScreen />}
-    </div>
+    </>
   );
 };
 

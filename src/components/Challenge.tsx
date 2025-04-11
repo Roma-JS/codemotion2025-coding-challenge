@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 // import Mocha from 'mocha';
 // import {assert} from 'chai';
 import { transpileTypeScript } from '../utils/ts';
 import { runCodeTests } from '../utils/testRunner';
 import { useGameState } from '../contexts/GameStateContext';
+
+import romajs from '../assets/romajs.png';
+import codemotion from '../assets/codemotion.png';
 
 // Mocha.setup('bdd');
 
@@ -20,7 +23,7 @@ console.log(result);
 
 // No props needed for now, using React.FC without generic parameter
 const Challenge: React.FC = () => {
-  const { playerName, elapsedTime, testResults, setTestResults } = useGameState();
+  const { elapsedTime, testResults, setTestResults } = useGameState();
   const [code, setCode] = useState<string>(defaultCode);
 
   // Format time from seconds to MM:SS
@@ -38,7 +41,7 @@ const Challenge: React.FC = () => {
   };
 
   // Function to run tests with the current code
-  const runTests = async () => {
+  const runTests = useCallback(async () => {
     const transpiledCode = transpileTypeScript(code);
 
     try {
@@ -47,17 +50,34 @@ const Challenge: React.FC = () => {
     } catch (error) {
       console.error('Error running tests:', error);
     }
-  };
+  }, [code, setTestResults]);
+
+
+  // Add keyboard shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.altKey) && event.key === 'Enter') {
+        event.preventDefault();
+        runTests();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [runTests]); // Re-run effect when code changes
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col h-screen p-4">
       {/* Header with player info and timer */}
       <div className="bg-gray-100 p-4 rounded-lg mb-4 flex justify-between items-center">
-        <div>
-          <span className="font-semibold">Player: </span>{playerName}
+        <div className="flex flex-row items-center justify-center gap-2">
+          <img src={romajs} alt="romajs" className="h-14" />
+          <img src={codemotion} alt="codemotion" className="h-14" />
         </div>
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-0">TypeScript Challenge</h1>
+          <h1 className="text-2xl font-bold mb-0">The Coding Challenge</h1>
         </div>
         <div>
           <span className="font-semibold">Time: </span>
@@ -66,11 +86,11 @@ const Challenge: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-row h-[calc(100vh-150px)]">
+      <div className="flex flex-row flex-1">
         {/* First column - Monaco Editor */}
-        <div className="w-1/2 p-4">
+        <div className="w-2/3 h-full">
           <div className="h-full bg-gray-100 rounded-lg p-4 flex flex-col">
-            <h2 className="text-xl font-bold mb-2">TypeScript Editor</h2>
+            <h2 className="text-xl font-bold mb-2">The code</h2>
             <div className="flex-grow">
               <Editor
                 height="100%"
@@ -81,9 +101,10 @@ const Challenge: React.FC = () => {
                 options={{
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
-                  fontSize: 14,
+                  fontSize: 16,
                   tabSize: 2,
                   automaticLayout: true,
+                  contextmenu: false
                 }}
               />
             </div>
@@ -99,7 +120,7 @@ const Challenge: React.FC = () => {
         </div>
 
         {/* Second column - split into two rows */}
-        <div className="w-1/2 flex flex-col p-4">
+        <div className="w-1/3 flex flex-col pl-4">
           {/* Top row of second column - for output */}
           <div className="h-1/2 mb-4 bg-gray-200 rounded-lg p-4 overflow-auto">
             <h2 className="text-xl font-bold mb-2">Code Output</h2>

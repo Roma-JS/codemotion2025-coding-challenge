@@ -3,11 +3,9 @@ import GameContainer from './components/GameContainer';
 
 function App() {
   return (
-    <div className="container mx-auto p-4">
-      <GameStateProvider>
-        <GameContainer />
-      </GameStateProvider>
-    </div>
+    <GameStateProvider>
+      <GameContainer />
+    </GameStateProvider>
   )
 }
 
