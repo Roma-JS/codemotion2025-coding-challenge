@@ -1,29 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-// import Mocha from 'mocha';
-// import {assert} from 'chai';
 import { transpileTypeScript } from '../utils/ts';
 import { runCodeTests } from '../utils/testRunner';
 import { useGameState } from '../contexts/GameStateContext';
+import GameOverPopup from './GameOverPopup';
 
 import romajs from '../assets/romajs.png';
 import codemotion from '../assets/codemotion.png';
+import { defaultCode, tests } from '../utils/challenge';
 
-// Mocha.setup('bdd');
-
-// Default TypeScript code to display in the editor
-const defaultCode = `// TypeScript code goes here
-function greet(name: string): string {
-  return \`Hello, \${name}!\`;
-}
-
-const result = greet('Codemotion');
-console.log(result);
-`;
 
 // No props needed for now, using React.FC without generic parameter
 const Challenge: React.FC = () => {
-  const { elapsedTime, testResults, setTestResults } = useGameState();
+  const {
+    elapsedTime,
+    testResults,
+    setTestResults,
+    gameState
+  } = useGameState();
   const [code, setCode] = useState<string>(defaultCode);
 
   // Format time from seconds to MM:SS
@@ -35,23 +29,24 @@ const Challenge: React.FC = () => {
 
   // Handle code changes in the editor
   const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
+    if (gameState !== 'gameover' && value !== undefined) {
       setCode(value);
     }
   };
 
   // Function to run tests with the current code
   const runTests = useCallback(async () => {
+    if (gameState === 'gameover') return;
+
     const transpiledCode = transpileTypeScript(code);
 
     try {
-      const results = await runCodeTests(transpiledCode);
+      const results = await runCodeTests(transpiledCode, tests);
       setTestResults(results);
     } catch (error) {
       console.error('Error running tests:', error);
     }
-  }, [code, setTestResults]);
-
+  }, [code, setTestResults, gameState]);
 
   // Add keyboard shortcut handler
   useEffect(() => {
@@ -68,8 +63,13 @@ const Challenge: React.FC = () => {
     };
   }, [runTests]); // Re-run effect when code changes
 
+  const handleClosePopup = () => {
+    // No action needed, just close the popup
+  };
+
   return (
     <div className="w-full flex flex-col h-screen p-4">
+      {gameState === 'gameover' && <GameOverPopup onClose={handleClosePopup} />}
       {/* Header with player info and timer */}
       <div className="bg-gray-100 p-4 rounded-lg mb-4 flex justify-between items-center">
         <div className="flex flex-row items-center justify-center gap-2">
@@ -81,7 +81,9 @@ const Challenge: React.FC = () => {
         </div>
         <div>
           <span className="font-semibold">Time: </span>
-          <span className="text-blue-600 font-mono">{formatTime(elapsedTime)}</span>
+          <span className={`font-mono ${gameState === 'gameover' ? 'text-red-600' : 'text-blue-600'}`}>
+            {formatTime(elapsedTime)}
+          </span>
         </div>
       </div>
 
@@ -104,14 +106,31 @@ const Challenge: React.FC = () => {
                   fontSize: 16,
                   tabSize: 2,
                   automaticLayout: true,
-                  contextmenu: false
+                  contextmenu: false,
+                  readOnly: gameState === 'gameover'
+                }}
+                onMount={(editor, monaco) => {
+                  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                    // Trigger a keyboard event on window with meta + enter key
+                    const event = new KeyboardEvent('keydown', {
+                      key: 'Enter',
+                      code: 'Enter',
+                      metaKey: true,
+                      bubbles: true,
+                      cancelable: true
+                    });
+                    window.dispatchEvent(event);
+                  });
                 }}
               />
             </div>
             <div className="mt-4">
               <button
                 onClick={runTests}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                disabled={gameState === 'gameover'}
+                className={`bg-blue-500 text-white font-bold py-2 px-4 rounded ${
+                  gameState === 'gameover' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+                }`}
               >
                 Run Tests
               </button>
@@ -131,7 +150,14 @@ const Challenge: React.FC = () => {
 
           {/* Bottom row of second column - for test results */}
           <div className="h-1/2 bg-gray-300 rounded-lg p-4 overflow-auto">
-            <h2 className="text-xl font-bold mb-2">Test Results</h2>
+            <h2 className="text-xl font-bold mb-2">
+              Test Results
+              {testResults.length > 0 && (
+                <span className="ml-2 text-base font-normal">
+                  ({testResults.filter(test => test.status === 'pass').length}/{testResults.length})
+                </span>
+              )}
+            </h2>
             {testResults.length === 0 ? (
               <p>No tests run yet. Click "Run Tests" to start testing.</p>
             ) : (

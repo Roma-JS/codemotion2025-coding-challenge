@@ -20,7 +20,7 @@ interface GameStateContextType {
   setPlayerPhone: (phone: string) => void;
   dataSharingConsent: boolean;
   setDataSharingConsent: (consent: boolean) => void;
-  gameState: 'initial' | 'playing' | 'completed';
+  gameState: 'initial' | 'playing' | 'completed' | 'gameover';
   startGame: () => void;
   endGame: () => void;
   elapsedTime: number;
@@ -29,14 +29,16 @@ interface GameStateContextType {
   allTestsPassing: boolean;
 }
 
+const TIME_LIMIT = 600; // 10 minutes in seconds
+
 const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
 
 export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [playerName, setPlayerName] = useState<string>('');
-  const [playerEmail, setPlayerEmail] = useState<string>('');
-  const [playerPhone, setPlayerPhone] = useState<string>('');
+  const [playerName, setPlayerName] = useState<string>('m');
+  const [playerEmail, setPlayerEmail] = useState<string>('m@m.it');
+  const [playerPhone, setPlayerPhone] = useState<string>('+39 333 3333333');
   const [dataSharingConsent, setDataSharingConsent] = useState<boolean>(false);
-  const [gameState, setGameState] = useState<'initial' | 'playing' | 'completed'>('initial');
+  const [gameState, setGameState] = useState<'initial' | 'playing' | 'completed' | 'gameover'>('initial');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -48,7 +50,12 @@ export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     if (gameState === 'playing' && startTime !== null) {
       timerInterval = window.setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+        const newElapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        setElapsedTime(newElapsedTime);
+
+        if (newElapsedTime >= TIME_LIMIT) {
+          setGameState('gameover');
+        }
       }, 1000);
     }
 
@@ -83,7 +90,6 @@ export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children 
       console.error('Error saving user data:', error);
     }
   }, [playerName, playerEmail, playerPhone, dataSharingConsent, elapsedTime]);
-
 
   // Check if all tests are passing
   useEffect(() => {

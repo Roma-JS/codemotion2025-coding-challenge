@@ -11,7 +11,7 @@ export interface TestResult {
  * @param transpiledCode The JavaScript code to test
  * @returns An array of test results
  */
-export async function runCodeTests(transpiledCode: string): Promise<TestResult[]> {
+export async function runCodeTests(transpiledCode: string, tests: string): Promise<TestResult[]> {
   return new Promise((resolve) => {
     try {
       // Create a test environment
@@ -26,17 +26,7 @@ export async function runCodeTests(transpiledCode: string): Promise<TestResult[]
       const testScript = `
         ${transpiledCode}
 
-        describe('Code Tests', function() {
-          it('should properly greet a person', function() {
-            const result = greet('Tester');
-            assert.equal(result, 'Hello, Tester!');
-          });
-
-          it('should handle empty strings', function() {
-            const result = greet('');
-            assert.equal(result, 'Hello, !');
-          });
-        });
+        ${tests}
       `;
 
       // Clear previous test results
