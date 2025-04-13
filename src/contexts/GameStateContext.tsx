@@ -7,6 +7,7 @@ interface UserData {
   email: string;
   phone: string;
   dataSharingConsent: boolean;
+  extremeMode: boolean;
   completionTime?: number;
   completionDate?: string;
 }
@@ -20,6 +21,8 @@ interface GameStateContextType {
   setPlayerPhone: (phone: string) => void;
   dataSharingConsent: boolean;
   setDataSharingConsent: (consent: boolean) => void;
+  extremeMode: boolean;
+  setExtremeMode: (mode: boolean) => void;
   gameState: 'initial' | 'playing' | 'completed' | 'gameover';
   startGame: () => void;
   endGame: () => void;
@@ -34,35 +37,16 @@ const TIME_LIMIT = 600; // 10 minutes in seconds
 const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
 
 export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [playerName, setPlayerName] = useState<string>('m');
-  const [playerEmail, setPlayerEmail] = useState<string>('m@m.it');
-  const [playerPhone, setPlayerPhone] = useState<string>('+39 333 3333333');
+  const [playerName, setPlayerName] = useState<string>('');
+  const [playerEmail, setPlayerEmail] = useState<string>('');
+  const [playerPhone, setPlayerPhone] = useState<string>('');
   const [dataSharingConsent, setDataSharingConsent] = useState<boolean>(false);
+  const [extremeMode, setExtremeMode] = useState<boolean>(false);
   const [gameState, setGameState] = useState<'initial' | 'playing' | 'completed' | 'gameover'>('initial');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [allTestsPassing, setAllTestsPassing] = useState<boolean>(false);
-
-  // Timer effect
-  useEffect(() => {
-    let timerInterval: number | null = null;
-
-    if (gameState === 'playing' && startTime !== null) {
-      timerInterval = window.setInterval(() => {
-        const newElapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        setElapsedTime(newElapsedTime);
-
-        if (newElapsedTime >= TIME_LIMIT) {
-          setGameState('gameover');
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (timerInterval) window.clearInterval(timerInterval);
-    };
-  }, [gameState, startTime]);
 
   const startGame = () => {
     setGameState('playing');
@@ -80,6 +64,7 @@ export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children 
       email: playerEmail,
       phone: playerPhone,
       dataSharingConsent,
+      extremeMode,
       completionTime: elapsedTime,
       completionDate: new Date().toISOString()
     };
@@ -87,9 +72,52 @@ export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       await saveUserData(userData);
     } catch (error) {
+      alert('Error saving user data');
       console.error('Error saving user data:', error);
     }
-  }, [playerName, playerEmail, playerPhone, dataSharingConsent, elapsedTime]);
+  }, [playerName, playerEmail, playerPhone, dataSharingConsent, extremeMode, elapsedTime]);
+
+  const gameOver = useCallback(async () => {
+    setGameState('gameover');
+
+    const userData: UserData = {
+      name: playerName,
+      email: playerEmail,
+      phone: playerPhone,
+      dataSharingConsent,
+      extremeMode,
+      completionTime: 9999,
+      completionDate: new Date().toISOString()
+    };
+
+    try {
+      await saveUserData(userData);
+    } catch (error) {
+      alert('Error saving user data');
+      console.error('Error saving user data:', error);
+    }
+  }, [playerName, playerEmail, playerPhone, dataSharingConsent, extremeMode]);
+
+
+  // Timer effect
+  useEffect(() => {
+    let timerInterval: number | null = null;
+
+    if (gameState === 'playing' && startTime !== null) {
+      timerInterval = window.setInterval(() => {
+        const newElapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        setElapsedTime(newElapsedTime);
+
+        if (newElapsedTime >= TIME_LIMIT) {
+          gameOver();
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerInterval) window.clearInterval(timerInterval);
+    };
+  }, [gameState, startTime, gameOver]);
 
   // Check if all tests are passing
   useEffect(() => {
@@ -114,6 +142,8 @@ export const GameStateProvider: React.FC<{ children: ReactNode }> = ({ children 
         setPlayerPhone,
         dataSharingConsent,
         setDataSharingConsent,
+        extremeMode,
+        setExtremeMode,
         gameState,
         startGame,
         endGame,

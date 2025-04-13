@@ -7,12 +7,19 @@ import CompletionScreen from './CompletionScreen';
 const GameContainer: React.FC = () => {
   const { gameState } = useGameState();
 
-  // Render different screens based on game state
   return (
     <>
       {gameState === 'initial' && <WelcomeScreen />}
-      {gameState === 'playing' && <Challenge />}
-      {gameState === 'completed' && <CompletionScreen />}
+      {(gameState === 'playing' || gameState === 'completed' || gameState === 'gameover') && (
+        <div className="relative">
+          <Challenge />
+          {(gameState === 'completed' || gameState === 'gameover') && (
+            <>
+              <CompletionScreen />
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 };

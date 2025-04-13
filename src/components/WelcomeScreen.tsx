@@ -14,6 +14,8 @@ const WelcomeScreen: React.FC = () => {
     setPlayerPhone,
     dataSharingConsent,
     setDataSharingConsent,
+    extremeMode,
+    setExtremeMode,
     startGame
   } = useGameState();
 
@@ -149,7 +151,19 @@ const WelcomeScreen: React.FC = () => {
               <p className="text-red-500 text-sm mt-1">{phoneError}</p>
             )}
           </div>
-
+          <div className="mb-6">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={extremeMode}
+                onChange={(e) => setExtremeMode(e.target.checked)}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="text-sm text-gray-700">
+                Enable Extreme Mode (You will get a bonus on the final score)
+              </span>
+            </label>
+          </div>
           <div className="mb-6">
             <label className="flex items-center">
               <input
@@ -163,6 +177,7 @@ const WelcomeScreen: React.FC = () => {
               </span>
             </label>
           </div>
+
 
           <button
             type="submit"
