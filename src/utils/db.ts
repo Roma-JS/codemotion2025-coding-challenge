@@ -4,6 +4,7 @@ interface UserData {
   phone: string;
   completionTime?: number;
   completionDate?: string;
+  extremeMode: boolean;
 }
 
 const DB_NAME = 'codingChallengeDB';
